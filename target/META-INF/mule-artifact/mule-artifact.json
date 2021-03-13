@@ -1,0 +1,44 @@
+{
+  "configs": [
+    "wrong-pin-value\u003c3.xml",
+    "account-exists-check.xml",
+    "atm-transaction-saikiran.xml",
+    "wrong-pin-value\u003d\u003d3.xml",
+    "schedular-flow.xml",
+    "withdraw.xml",
+    "check-balance.xml",
+    "create-account.xml",
+    "global_.xml",
+    "unblock.xml"
+  ],
+  "secureProperties": [],
+  "redeploymentEnabled": true,
+  "name": "com.mycompany:mulesoft-atm-transactions-saikiran:1.0.0-SNAPSHOT",
+  "minMuleVersion": "4.3.0",
+  "requiredProduct": "MULE_EE",
+  "classLoaderModelLoaderDescriptor": {
+    "id": "mule",
+    "attributes": {
+      "exportedPackages": [],
+      "exportedResources": [
+        "global_.xml",
+        "log4j2.xml",
+        "schedular-flow.xml",
+        "wrong-pin-value\u003d\u003d3.xml",
+        "application-types.xml",
+        "unblock.xml",
+        "withdraw.xml",
+        "datacheck.dwl",
+        "check-balance.xml",
+        "atm-transaction-saikiran.xml",
+        "wrong-pin-value\u003c3.xml",
+        "create-account.xml",
+        "account-exists-check.xml"
+      ]
+    }
+  },
+  "bundleDescriptorLoader": {
+    "id": "mule",
+    "attributes": {}
+  }
+}

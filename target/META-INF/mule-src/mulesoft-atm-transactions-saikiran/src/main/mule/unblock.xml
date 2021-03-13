@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:email="http://www.mulesoft.org/schema/mule/email" xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/email http://www.mulesoft.org/schema/mule/email/current/mule-email.xsd">
+	<flow name="unblockFlow" doc:id="3a24e619-e496-48a7-bf05-f01f480b026b" >
+		<ee:transform doc:name="Transform Message" doc:id="02ac97f5-2a3a-4887-91b0-174c29d97969" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="inputPayload" ><![CDATA[%dw 2.0
+output application/java
+---
+message]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<flow-ref doc:name="Flow Reference" doc:id="ee709375-e2ad-4fb9-b363-91f4cb927074" name="unblockAccountCheck"/>
+		<choice doc:name="Choice" doc:id="b48fb476-8b09-46eb-a5c5-0356983ebd01" >
+			<when expression='#[vars.dbResponse.payload != []]'>
+				<flow-ref doc:name="Flow Reference" doc:id="fd73ace2-0e2a-4baa-822c-402d4f6461f5" name="unblockAccountCheck"/>
+				<choice doc:name="Choice" doc:id="b7c82e26-0ee8-4ae8-8413-6077a84027c3" >
+					<when expression="#[vars.dbResponse.accountStatus == ['active']]">
+						<ee:transform doc:name="Transform Message" doc:id="58e34084-c226-4f52-8f79-e812abe805ae" >
+							<ee:message >
+								<ee:set-payload ><![CDATA[%dw 2.0
+output text/plain
+---
+"Account" ++ " " ++ vars.inputPayload.payload.accountNum ++ " " ++ "is Active."]]></ee:set-payload>
+							</ee:message>
+						</ee:transform>
+					</when>
+					<otherwise >
+						<db:update doc:name="Update" doc:id="179e85e8-1b2e-465b-b2a4-278f41c443a1" config-ref="Database_Config">
+							<db:sql ><![CDATA[update Bank_Transactions
+set accountStatus='active',
+	wrongPin=0
+where custAccNum=:accountNum and bankName=:bank;]]></db:sql>
+							<db:input-parameters ><![CDATA[#[{
+	accountNum: vars.inputPayload.payload.accountNum,
+    bank: vars.inputPayload.payload.bank
+}]]]></db:input-parameters>
+						</db:update>
+						<async doc:name="Async" doc:id="24529c93-ce7b-4c0f-8d78-556de9a70a6f" >
+							<until-successful maxRetries="5" doc:name="Until Successful" doc:id="103dd943-c2ee-4a80-98be-98b2e20462b6" millisBetweenRetries="6000">
+								<email:send doc:name="Send" doc:id="dc9c2a4c-0bdb-42e1-b714-b8c9988ea21d" config-ref="Email_SMTP" fromAddress="kiran.sai7049@gmail.com" subject="Account Unblocked !!!!!!!!">
+								<email:to-addresses>
+									<email:to-address value='#[((vars.dbResponse.mailId) joinBy "")]' />
+								</email:to-addresses>
+								<email:body contentType="text/plain">
+									<email:content><![CDATA[This is to inform you that Your Account has been unblocked.]]></email:content>
+								</email:body>
+							</email:send>
+							</until-successful>
+						</async>
+						<ee:transform doc:name="Transform Message" doc:id="14d51e59-ce63-40c0-8b10-2d09b507ed7a" >
+							<ee:message >
+								<ee:set-payload ><![CDATA[%dw 2.0
+output text/plain
+---
+"Account" ++ " " ++ vars.inputPayload.payload.accountNum ++ " " ++ "is Unblocked."]]></ee:set-payload>
+							</ee:message>
+						</ee:transform>
+					</otherwise>
+				</choice>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="Transform Message" doc:id="c82a184b-44da-4b05-9361-7896bc59352e" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output text/plain
+---
+"Account" ++ " " ++  vars.inputPayload.payload.accountNum ++ " " ++ "does not exist. Enter valid Details."]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+	<sub-flow name="unblockAccountCheck" doc:id="52515f47-0396-4399-9f8d-a2f373e1048f" >
+		<db:select doc:name="Select" doc:id="2d63ffdb-a40b-4f59-8282-bd824b7f69c1" config-ref="Database_Config">
+			<db:sql><![CDATA[select *from Bank_Transactions where custAccNum=:accountNum and bankName=:bank;]]></db:sql>
+			<db:input-parameters><![CDATA[#[{
+	accountNum: vars.inputPayload.payload.accountNum,
+    bank: vars.inputPayload.payload.bank
+}]]]></db:input-parameters>
+		</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="3a60d616-bd0c-482e-ab7e-5a627056b248">
+			<ee:message>
+			</ee:message>
+			<ee:variables>
+				<ee:set-variable variableName="dbResponse"><![CDATA[%dw 2.0
+output application/java
+---
+payload]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+	</sub-flow>
+</mule>

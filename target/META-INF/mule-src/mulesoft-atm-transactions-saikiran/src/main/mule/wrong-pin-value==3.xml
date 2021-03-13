@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:email="http://www.mulesoft.org/schema/mule/email"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/email http://www.mulesoft.org/schema/mule/email/current/mule-email.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<flow name="wrong-pin-value==3Flow" doc:id="f92cf0e7-1689-48ee-b795-8ced1448d383" >
+		<email:send doc:name="Send Out The Mail" doc:id="52daf1db-2a7e-4b44-b523-dfb5916d69c4" config-ref="Email_SMTP" fromAddress="kiran.sai7049@gmail.com" subject="Account Blocked !">
+			<email:to-addresses>
+				<email:to-address value='#[((vars."dbResponse-accountCheck".payload.mailId) joinBy "")]' />
+				<email:to-address value="kiran.sai2626@gmail.com" />
+			</email:to-addresses>
+			<email:body contentType="text/plain">
+				<email:content><![CDATA[This is to inform you that Your Account has been be blocked due to 3 failed attempts. Please reach out nearest branch to unblock]]></email:content>
+			</email:body>
+		</email:send>
+		<db:update doc:name="Update The Wrong Pin In Db To Blocked" doc:id="f9eb6093-fce8-43ff-b91d-ba804d8848ae" config-ref="Database_Config">
+			<db:sql><![CDATA[update Bank_Transactions
+set accountStatus='Blocked'
+where custAccNum=:accountNum and bankName=:bank;]]></db:sql>
+			<db:input-parameters><![CDATA[#[{
+	accountNum: vars.inputPayload.payload.accountNum,
+    bank: vars.inputPayload.attributes.queryParams.bank
+}]]]></db:input-parameters>
+		</db:update>
+		<ee:transform doc:name="Transform Message" doc:id="128a9f90-c190-46a5-98a9-65939aa75495" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status" : "Maximum Attempts reached. Your Account" ++ " " ++ vars.inputPayload.payload.accountNum ++ " " ++ 
+                            "is temporarily blocked. Please reach nearest Branch"
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>f076267c-2b29-4c57-beec-3f6cf7e929b2</groupId>
+  <artifactId>errorcodes</artifactId>
+  <version>1.0.2</version>
+  <name>errorcodes</name>
+  <properties>
+    <classifier>raml-fragment</classifier>
+    <main>errorcodes.raml</main>
+    <originalFormatVersion>1.0</originalFormatVersion>
+    <projectId>9ff005bd-139c-4162-83e4-f5ec0940cede</projectId>
+    <branchId>master</branchId>
+    <commitId>c63edbb63d8f6cd8a0a611055c40c3d2b1853981</commitId>
+    <type>raml-fragment</type>
+    <mainFile>errorcodes.raml</mainFile>
+  </properties>
+  <repositories>
+    <repository>
+      <id>anypoint-exchange</id>
+      <url>https://maven.anypoint.mulesoft.com/api/v3/maven</url>
+    </repository>
+  </repositories>
+</project>

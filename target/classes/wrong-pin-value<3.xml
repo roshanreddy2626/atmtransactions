@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:email="http://www.mulesoft.org/schema/mule/email"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/email http://www.mulesoft.org/schema/mule/email/current/mule-email.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<flow name="wrong-pin-value&lt;3Flow" doc:id="a6cfb68a-5e65-4674-8b6e-bc3cb2f064f4" >
+		<email:send doc:name="Send Out The Mail" doc:id="5f408887-3255-404d-b19a-feb4c24e9d23" config-ref="Email_SMTP" fromAddress="kiran.sai7049@gmail.com" subject="Failed Attempt !!!!!!!!!">
+			<email:to-addresses>
+				<email:to-address value="kiran.sai2626@gmail.com" />
+				<email:to-address value='#[((vars."dbResponse-accountCheck".payload.mailId) joinBy "")]' />
+			</email:to-addresses>
+			<email:body contentType="text/plain">
+				<email:content><![CDATA[This is to inform you that there’s a failed attempt happened 
+while transaction . Your Account will be blocked after 3 attempts]]></email:content>
+			</email:body>
+		</email:send>
+		<db:update doc:name="Update The Db For Every Wrong Entry" doc:id="9e2c0456-b57a-49dd-8c51-e2fc525f36c6" config-ref="Database_Config">
+			<db:sql><![CDATA[update Bank_Transactions 
+set wrongPin = (select wrongPin + 1) 
+where custAccNum=:accountNum and bankName=:bank; ]]></db:sql>
+			<db:input-parameters><![CDATA[#[{
+	accountNum: vars.inputPayload.payload.accountNum,
+    bank: vars.inputPayload.attributes.queryParams.bank
+}]]]></db:input-parameters>
+		</db:update>
+		<db:select doc:name="checking The No. Of Times The Pin Entered Wrong" doc:id="00b3bd43-ed3d-42aa-9524-ed738c8c6d30" config-ref="Database_Config">
+			<db:sql><![CDATA[SELECT wrongPin FROM Bank_Transactions where custAccNum=:accountNum and bankName=:bank;]]></db:sql>
+			<db:input-parameters><![CDATA[#[{
+	accountNum: vars.inputPayload.payload.accountNum,
+    bank: vars.inputPayload.attributes.queryParams.bank
+}]]]></db:input-parameters>
+		</db:select>
+		<ee:transform doc:name="response To The User" doc:id="2827c44d-56ef-43d6-b48d-9e209a65da5e" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": "login attempt failed. Attempts left" ++ " " ++ (3 - ((payload.wrongPin) joinBy ""))
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>

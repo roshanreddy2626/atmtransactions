@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:tls="http://www.mulesoft.org/schema/mule/tls" xmlns:s3="http://www.mulesoft.org/schema/mule/s3"
+	xmlns:email="http://www.mulesoft.org/schema/mule/email"
+	xmlns:batch="http://www.mulesoft.org/schema/mule/batch" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/batch http://www.mulesoft.org/schema/mule/batch/current/mule-batch.xsd
+http://www.mulesoft.org/schema/mule/email http://www.mulesoft.org/schema/mule/email/current/mule-email.xsd
+http://www.mulesoft.org/schema/mule/s3 http://www.mulesoft.org/schema/mule/s3/current/mule-s3.xsd
+http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd">
+	<db:config name="Database_Config" doc:name="Database Config" doc:id="5ce7b82c-ae7a-47a6-9664-40504841da88" >
+		<db:my-sql-connection host="atmtransactions.crnl15lzntmn.us-east-1.rds.amazonaws.com" port="3306" user="admin" password="luvmytango" database="atm_transactions" >
+			<db:connection-properties >
+				<db:connection-property key="useSSL" value="false" />
+			</db:connection-properties>
+		</db:my-sql-connection>
+	</db:config>
+	<s3:config name="Amazon_S3_Configuration" doc:name="Amazon S3 Configuration" doc:id="8e21fff8-e300-4a57-8a2b-948296fa70e8" >
+		<s3:basic-connection accessKey="AKIAJAX7GI5BKBIHFPIA" secretKey="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" />
+	</s3:config>
+	<email:smtp-config name="Email_SMTP" doc:name="Email SMTP" doc:id="a43a4e66-7cb7-40ca-8d0f-f7c67cc261a3" >
+		<email:smtps-connection host="smtp.gmail.com" user="kiran.sai7049@gmail.com" password="Procrastinator@2995">
+			<tls:context >
+				<tls:trust-store insecure="true" />
+			</tls:context>
+		</email:smtps-connection>
+	</email:smtp-config>
+	<flow name="createAccountFlow" doc:id="b8404567-6d3c-43a4-8ae0-f441d1b92a9c" >
+		<ee:transform doc:name="variable Of The Input Payload" doc:id="8e48fe9f-1e02-4716-8456-52df4d40e01f" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="inputPayload" ><![CDATA[%dw 2.0
+output application/json
+---
+message]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<flow-ref doc:name="Flow Reference" doc:id="7301f0b0-2a07-476f-bd77-fd5dd8b4674c" name="accountExistsCheckFlow"/>
+		<choice doc:name="Choice" doc:id="3263d14f-5f22-4161-aa16-ae07372ec10d" >
+			<when expression='#[vars."dbResponse-accountCheck".message.payload == []]'>
+				<db:insert doc:name="insert Into The Db If The Record Doesn't Exists" doc:id="cdfc6b4b-e58a-4daf-a1cb-ae26a9742d8b" config-ref="Database_Config">
+					<db:sql><![CDATA[INSERT INTO Bank_Transactions (pk,custName,custAccNum,atmPin,bankName,accountType,ifscCode,branchName,totalBalance,transactionTimeStamp,accountStatus,wrongPin,mailId,phoneNumber)
+
+values ('0',:customerName,:accountNum,:atmPin,:bank,:accounttype,:ifscCode,:branchname,:depositAmount,:time,'active','0',:mailId,:contact);]]></db:sql>
+					<db:input-parameters><![CDATA[#[{
+	customerName: vars.inputPayload.attributes.queryParams.customerName,
+	accountNum: vars.inputPayload.payload.accountNum,
+	atmPin: vars.inputPayload.payload.atmPin,
+	bank: vars.inputPayload.attributes.queryParams.bank,
+	accounttype: vars.inputPayload.attributes.queryParams.'type',
+	ifscCode: vars.inputPayload.payload.ifscCode,
+	branchname: vars.inputPayload.attributes.queryParams.branchname,
+	depositAmount: vars.inputPayload.payload.depositAmount,
+	time: now() as String,
+	mailId: vars.inputPayload.payload.mailId,
+	contact: vars.inputPayload.payload.contact
+}]]]></db:input-parameters>
+				</db:insert>
+				<async doc:name="Async" doc:id="2e4fdbcb-f6c9-422e-b312-01617cb9fa5e" >
+					<db:select doc:name="select The Record  For S3 And Mail" doc:id="b03c6504-109f-4400-b70c-0eb1e084813c" config-ref="Database_Config">
+						<db:sql ><![CDATA[select *from Bank_Transactions where custAccNum=:accountNum and bankName=:bank;]]></db:sql>
+						<db:input-parameters ><![CDATA[#[{
+	accountNum: vars.inputPayload.payload.accountNum,
+    bank: vars.inputPayload.attributes.queryParams.bank
+}]]]></db:input-parameters>
+					</db:select>
+					<ee:transform doc:name="variable Of Db Response" doc:id="49422680-fc04-434d-a62e-b40db60cbf26" >
+						<ee:message >
+						</ee:message>
+						<ee:variables >
+							<ee:set-variable variableName="dbResponse" ><![CDATA[%dw 2.0
+output application/json
+---
+message]]></ee:set-variable>
+						</ee:variables>
+					</ee:transform>
+					<s3:create-object doc:name="insert The Payload Into S3 Bucket" doc:id="09b7ebfe-91d2-4c50-945e-e344ae6aa6dd" config-ref="Amazon_S3_Configuration" bucketName="atm-transactions-saikiran" key="#[vars.inputPayload.payload.accountNum ++ '_' ++ vars.inputPayload.attributes.queryParams.customerName ++ '.json']">
+						<s3:object-content ><![CDATA[#[vars.dbResponse.payload]]]></s3:object-content>
+					</s3:create-object>
+					<email:send doc:id="32a87530-5e10-48bf-a9d8-7f0e8defd2c1" config-ref="Email_SMTP" fromAddress="kiran.sai7049@gmail.com" subject="Congratulations! Account Created" doc:name="send Mail To The Account Holder">
+						<email:to-addresses >
+							<email:to-address value="kiran.sai2626@gmail.com" />
+							<email:to-address value="axis12345@gmail.com" />
+						</email:to-addresses>
+						<email:body contentType="text/plain" >
+							<email:content ><![CDATA[#[vars.dbResponse.payload]]]></email:content>
+						</email:body>
+					</email:send>
+				</async>
+				<ee:transform doc:name="response To The Client" doc:id="0f64050c-db97-4331-8e20-f913237d2df8" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status" : "account" ++ " " ++ vars.inputPayload.payload.accountNum ++ " " ++ "Successfully Created"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</when>
+			<when expression='#[vars."dbResponse-accountCheck".message.payload != []]'>
+				<db:update doc:name="Update The Record If It Already Exists In The Db" doc:id="8c0d0bae-ee27-4f00-ba98-3fb582f6fc5f" config-ref="Database_Config">
+					<db:sql ><![CDATA[UPDATE Bank_Transactions
+SET pk=0, custName=:customerName, custAccNum=:accountNum, atmPin=:atmPin, bankName=:bank, accountType=:accounttype, ifscCode=:ifscCode, branchName=:branchname, totalBalance=:depositAmount, transactionTimeStamp=:time, accountStatus='active', wrongPin=0, mailId=:mailId, phoneNumber=:contact
+WHERE custAccNum=:accountNum and bankName=:bank;
+]]></db:sql>
+					<db:input-parameters ><![CDATA[#[{
+	customerName: vars.inputPayload.attributes.queryParams.customerName,
+	accountNum: vars.inputPayload.payload.accountNum,
+	atmPin: vars.inputPayload.payload.atmPin,
+	bank: vars.inputPayload.attributes.queryParams.bank,
+	accounttype: vars.inputPayload.attributes.queryParams.'type',
+	ifscCode: vars.inputPayload.payload.ifscCode,
+	branchname: vars.inputPayload.attributes.queryParams.branchname,
+	depositAmount: vars.inputPayload.payload.depositAmount,
+	time: now() as String,
+	mailId: vars.inputPayload.payload.mailId,
+	contact: vars.inputPayload.payload.contact
+}]]]></db:input-parameters>
+				</db:update>
+				<ee:transform doc:name="response To The Client" doc:id="adf0520a-fa0a-4e0a-8cc2-f84678f0331f">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output text/plain
+---
+"Account" ++ " " ++ vars.inputPayload.payload.accountNum ++ " " ++ "already exists hence it has been updated"]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+			</when>
+		</choice>
+		<error-handler >
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="54c68f71-2cbc-49ce-bf37-545989c5bc11" type="DB:CONNECTIVITY"/>
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="909673bd-2446-427a-853c-1721cdb673f9" type="DB:BAD_SQL_SYNTAX"/>
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="92aa4a63-8c8c-4f70-a946-def4aa43aec5" type="S3:INVALID_TOKEN"/>
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="08a2a37f-605e-455f-b6ff-5cfbe900ef0c" type="S3:CONNECTIVITY"/>
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="23a53692-1f63-4ec8-bccc-67d8513178b3" type="ANY"/>
+		</error-handler>
+	</flow>
+</mule>
