@@ -7,7 +7,7 @@ http://www.mulesoft.org/schema/mule/email http://www.mulesoft.org/schema/mule/em
 http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
 http://www.mulesoft.org/schema/mule/batch http://www.mulesoft.org/schema/mule/batch/current/mule-batch.xsd">
-<!--  <flow name="schedular-flowFlow" doc:id="61c95314-7a9d-4b33-8a2a-af8c7b5d0d7c" >
+ <flow name="schedular-flowFlow" doc:id="61c95314-7a9d-4b33-8a2a-af8c7b5d0d7c" >
 		<scheduler doc:name="Scheduler" doc:id="f19f878c-da2e-420f-9245-d2aa19a31d6f" >
 			<scheduling-strategy >
 				<fixed-frequency frequency="24" timeUnit="HOURS" />
@@ -20,7 +20,7 @@ http://www.mulesoft.org/schema/mule/batch http://www.mulesoft.org/schema/mule/ba
 			<ee:message >
 				<ee:set-payload ><![CDATA[%dw 2.0
 output application/java
--&#45;&#45;
+---
 payload]]></ee:set-payload>
 			</ee:message>
 		</ee:transform>
@@ -43,5 +43,5 @@ payload]]></ee:set-payload>
 				</batch:step>
 			</batch:process-records>
 		</batch:job>
-	</flow> -->
+	</flow>
 </mule>
