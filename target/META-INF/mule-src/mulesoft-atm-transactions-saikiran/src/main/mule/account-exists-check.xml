@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<flow name="accountExistsCheckFlow" doc:id="bbb20b04-98da-44cf-b7ac-bbe921f5127b" >
+		<until-successful maxRetries="5" doc:name="Until Successful" doc:id="82288a90-0f43-4862-81ab-300d936aeac4" millisBetweenRetries="10000">
+			<db:select doc:name="checking In Db If The Account Exists" doc:id="43278f80-79f3-4d87-8e57-7258fc5f86ff" config-ref="AWS_RDB_SQL_Database_Config">
+			<db:sql><![CDATA[select *from Bank_Transactions where custAccNum=:accountNum and bankName=:bank;]]></db:sql>
+			<db:input-parameters><![CDATA[#[{
+	accountNum: vars.inputPayload.payload.accountNum,
+    bank: vars.inputPayload.attributes.queryParams.bank
+}]]]></db:input-parameters>
+		</db:select>
+		</until-successful>
+		<ee:transform doc:name="variable Of Db Response" doc:id="21f86563-7647-4a4f-9a7f-654fafe21164" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="dbResponse-accountCheck" ><![CDATA[%dw 2.0
+output application/java
+---
+message]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<error-handler >
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="650063ea-4d1e-480f-828b-8b61e2610fcc" type="MULE:RETRY_EXHAUSTED">
+				<ee:transform doc:name="Transform Message" doc:id="3cb37d89-8392-48e6-9cc3-226f3d2fa70b" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": "connecting to database failed"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+</mule>

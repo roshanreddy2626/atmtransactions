@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<configuration doc:name="Configuration" doc:id="c984cdeb-06bf-4e10-a72e-95044c97b508" defaultErrorHandler-ref="global-error-handlerError_Handler" />
+	<error-handler name="global-error-handlerError_Handler" doc:id="de0b401d-159f-4683-91ff-4322c0ace3f4" >
+		<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="9b5a03f6-c0d6-40c8-a320-197c4c471035" type="DB:CONNECTIVITY">
+			<ee:transform doc:name="response To The User" doc:id="35efd699-987c-4794-a15e-f03daaee45e8" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": "Database Server is Down. Please try again after sometime."
+}]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+		</on-error-propagate>
+		<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="cd57a588-f3bb-49c6-aeb8-2090665b18a7" type="DB:BAD_SQL_SYNTAX">
+			<ee:transform doc:name="response To The User" doc:id="be821074-62d4-4c44-9d2e-c783ba2e4e04" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+output plain/text
+---
+"SQL syntax entered is incorrect. Please do check."]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+		</on-error-propagate>
+		<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="c342ed2a-5604-4eff-b3e2-77053f85033f" type="DB:QUERY_EXECUTION">
+			<ee:transform doc:name="response To The User" doc:id="46d79cea-31ae-492b-a567-003a9d337891" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": "query failed"
+}]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+		</on-error-propagate>
+		<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="bb8e495a-5de6-4bed-9009-5727a9d32999" type="DB:RETRY_EXHAUSTED">
+			<ee:transform doc:name="response To The User" doc:id="8318ceb8-9a66-4bd4-97fd-e83d30ff3e6b" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status" : "retry exhausted"
+}]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+		</on-error-propagate>
+		<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="8e25e64c-48aa-4335-ab9e-fef912b5e09e" type="EMAIL:CONNECTIVITY">
+			<ee:transform doc:name="response To The User" doc:id="ffc27e33-57c8-428f-8670-a21a3a2b7b49" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": "email connectivity error"
+}]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+		</on-error-propagate>
+		<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="afc35c72-7c81-4b0c-b584-a619fef6ceea" type="EMAIL:SEND">
+			<ee:transform doc:name="response To The User" doc:id="daf92e02-2c19-4724-9a04-8571b532d33f" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": "email not sent"
+}]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+		</on-error-propagate>
+		<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="431968d4-a152-4956-ac66-8dd95078bf62" type="S3:ACCOUNT_PROBLEM">
+			<ee:transform doc:name="response To The User" doc:id="55bb4bf1-9873-4889-bf2c-c78fab270e5e" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": "amazon s3 account problem"
+}]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+		</on-error-propagate>
+		<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="75db06dc-e5ea-4517-bd6d-bc96909c6648" type="S3:EXPIRED_TOKEN">
+			<ee:transform doc:name="Transform Message" doc:id="d1d59941-b5fc-4f4a-82b2-7c31746f6b16" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": "the s3 token is expired"
+}]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+		</on-error-propagate>
+		<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="4a3b816c-072c-44ed-bb04-5de977338b7d" type="S3:INVALID_BUCKET_NAME">
+			<ee:transform doc:name="response To The User" doc:id="0368892a-5482-4173-be74-8d60e1be0876" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": "invalid s3 bucket name"
+}]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+		</on-error-propagate>
+		<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="8f0d0d9b-5bc7-479e-813f-46fc27654eef" type="S3:MAX_MESSAGE_LENGTH_EXCEEDED">
+			<ee:transform doc:name="response To The User" doc:id="c78f4b87-91a6-4f03-8439-58cefb0ad018" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": "maximum message length exceeded"
+}]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+		</on-error-propagate>
+		<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="a374047e-c226-438f-97b0-ea0e53b5dcd4" type="S3:REQUEST_TIMEOUT">
+			<ee:transform doc:name="response To The User" doc:id="ded1d0bb-72c3-4d13-992d-9b74b6e3d9d5" >
+				<ee:message >
+					<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": "s3 request timeout"
+}]]></ee:set-payload>
+				</ee:message>
+			</ee:transform>
+		</on-error-propagate>
+	</error-handler>
+</mule>

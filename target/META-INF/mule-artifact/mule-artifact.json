@@ -1,23 +1,53 @@
 {
   "configs": [
-    "batchprocessing2.xml"
+    "wrong-pin-value\u003c3.xml",
+    "account-exists-check.xml",
+    "check-balance-test-suite.xml",
+    "wrong-pin-value\u003d\u003d3.xml",
+    "schedular-flow.xml",
+    "withdraw.xml",
+    "api.xml",
+    "check-balance.xml",
+    "create-account.xml",
+    "global_.xml",
+    "unblock.xml"
   ],
   "secureProperties": [],
   "redeploymentEnabled": true,
-  "name": "com.mycompany:batchprocessing2:1.0.0-SNAPSHOT",
+  "name": "com.mycompany:mulesoft-atm-transactions-saikiran:1.0.0-SNAPSHOT",
   "minMuleVersion": "4.3.0",
   "requiredProduct": "MULE_EE",
   "classLoaderModelLoaderDescriptor": {
     "id": "mule",
     "attributes": {
-      "exportedPackages": [],
       "exportedResources": [
+        "global_.xml",
         "log4j2.xml",
+        "schedular-flow.xml",
+        "wrong-pin-value\u003d\u003d3.xml",
         "application-types.xml",
-        "batchprocessing2.xml",
-        "examples/FL_insurance_sample.csv",
-        "examples/Sample-JSON-file-with-multiple-records-download.json"
-      ]
+        "unblock.xml",
+        "withdraw.xml",
+        "datacheck.dwl",
+        "check-balance.xml",
+        "properties/dev.properties",
+        "wrong-pin-value\u003c3.xml",
+        "api.xml",
+        "create-account.xml",
+        "account-exists-check.xml",
+        "log4j2-test.xml",
+        "check_balance_test_cases/check_balance_success_response.dwl",
+        "check_balance_test_cases/input_payload_account_doesnotexists.dwl",
+        "check_balance_test_cases/input_payload_account_blocked.dwl",
+        "check_balance_test_cases/check_balance_account_blocked_response.dwl",
+        "check_balance_test_cases/input_payload_wrongpin\u003d3.dwl",
+        "check_balance_test_cases/input_attributes.dwl",
+        "check_balance_test_cases/check_balance_account_doesnotexists_response.dwl",
+        "check_balance_test_cases/input_payload.dwl",
+        "check_balance_test_cases/input_payload_wrongpin\u003c3.dwl"
+      ],
+      "includeTestDependencies": "true",
+      "exportedPackages": []
     }
   },
   "bundleDescriptorLoader": {
