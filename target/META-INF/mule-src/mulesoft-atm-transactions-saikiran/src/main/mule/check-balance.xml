@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+ <mule xmlns:email="http://www.mulesoft.org/schema/mule/email" xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/email http://www.mulesoft.org/schema/mule/email/current/mule-email.xsd">
+	<flow name="checkBalanceFlow" doc:id="bb71f197-cb04-4415-aac5-06ee2bedc7da" >
+		<ee:transform doc:name="variable Of Input Payload" doc:id="792cd693-922f-4d87-8f55-bd8b0e4a1173" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="inputPayload" ><![CDATA[%dw 2.0
+output application/java
+---
+message]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<flow-ref doc:name="calling Account Exists Flow" doc:id="13640c80-fcb5-46f9-b666-2a9d4b6f1745" name="accountExistsCheckFlow"/>
+		<choice doc:name="Choice" doc:id="e4b121ac-fe64-4141-bf69-f2991765e1f7" >
+			<when expression='#[vars."dbResponse-accountCheck".message.payload != []]'>
+				<flow-ref doc:name="calling Account Exists Flow" doc:id="a4b52b77-8fdc-478f-a049-e89ad9dad125" name="accountExistsCheckFlow"/>
+				<choice doc:name="Choice" doc:id="8033bbce-cb02-4963-a340-0325938cd778" >
+					<when expression='#[((vars."dbResponse-accountCheck".payload.accountStatus) joinBy "") == "active"]'>
+						<flow-ref doc:name="calling Account Exists Flow" doc:id="dd66c887-1e1a-4ac1-8066-3ad6b788e1a4" name="accountExistsCheckFlow"/>
+						<choice doc:name="Choice" doc:id="90fd59b7-81fa-4e21-a8ce-d87cc731330a" >
+							<when expression='#[vars."dbResponse-accountCheck".payload.atmPin == [vars.inputPayload.payload.atmPin]]'>
+								<ee:transform doc:name="response To User If The Pin Is Correct" doc:id="7f989c50-5c99-4bc1-b416-a5957c706703" >
+									<ee:message >
+										<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": "your total balance is" ++ " " ++ ((vars."dbResponse-accountCheck".payload.totalBalance) joinBy "") ++ " " ++ "as on" ++ " " ++ now() as String {format: "dd-MMM-yyyy"} ++ "."
+}]]></ee:set-payload>
+									</ee:message>
+								</ee:transform>
+							</when>
+							<otherwise >
+								<flow-ref doc:name="calling Account Exists Flow" doc:id="cfd62ce1-b9d6-4ba8-8b7e-9ce792d665c0" name="accountExistsCheckFlow"/>
+								<choice doc:name="Choice" doc:id="cc05d6a4-c593-4a7f-8ddd-a5d3a8f060e5" >
+									<when expression='#[((vars."dbResponse-accountCheck".payload.wrongPin) joinBy "") &lt; 3]'>
+										<flow-ref doc:name="calling Wrong Pin&lt;3 Flow" doc:id="30f07acc-07ea-4488-9d12-a22b23963730" name="wrong-pin-value&lt;3Flow"/>
+									</when>
+									<when expression='#[vars."dbResponse-accountCheck".payload.wrongPin == [3]]'>
+										<flow-ref doc:name="calling Wrong Pin=3 Flow" doc:id="5aeb4c58-1c7c-4992-87d9-41301231859f" name="wrong-pin-value==3Flow"/>
+									</when>
+								</choice>
+							</otherwise>
+						</choice>
+					</when>
+					<otherwise >
+						<ee:transform doc:name="response To The User" doc:id="b6370f58-b612-4934-a476-af86c84d1b7f" >
+							<ee:message >
+								<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": "Account" ++ " " ++ vars.inputPayload.payload.accountNum ++ " " ++ "temporarily blocked. Please visit nearest branch"
+}]]></ee:set-payload>
+							</ee:message>
+						</ee:transform>
+					</otherwise>
+ 				</choice>
+			</when>
+			<otherwise>
+				<ee:transform doc:name="response To The User" doc:id="c847687b-72a7-4edb-9126-fac048509ecf">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status" : "Account" ++ " " ++ vars.inputPayload.payload.accountNum ++ " " ++ "does not exists. Enter valid details"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice> 
+	</flow>
+	<!-- <flow name="accountCheck-flow" doc:id="b5467a72-00df-4432-b340-709a5bfc2538" >
+		<ee:cache doc:name="Cache" doc:id="54a87494-0a47-4ef4-a4be-6fc8b2d5a797" >
+			<db:select doc:name="checking In Db If The Account Exists" doc:id="dd41a8ee-ef8f-486c-90fe-ceda9c17bfa8" config-ref="Database_Config">
+			<db:sql><![CDATA[select *from Bank_Transactions where custAccNum=:accountNum and bankName=:bank;]]></db:sql>
+			<db:input-parameters><![CDATA[#[{
+	accountNum: vars.inputPayload.payload.accountNum,
+    bank: vars.inputPayload.attributes.queryParams.bank
+}]]]></db:input-parameters>
+		</db:select>
+		</ee:cache>
+		<ee:transform doc:name="variable Of Db Response" doc:id="bb1b9ae6-6fe6-4157-afcf-51c07e58ec53" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="dbResponse-accountCheck" ><![CDATA[%dw 2.0
+output application/java
+-&#45;&#45;
+message]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+	</flow> -->
+</mule> 

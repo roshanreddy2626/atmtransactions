@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:email="http://www.mulesoft.org/schema/mule/email" xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/email http://www.mulesoft.org/schema/mule/email/current/mule-email.xsd">
+	<flow name="unblockFlow" doc:id="3a24e619-e496-48a7-bf05-f01f480b026b" >
+		<ee:transform doc:name="variable Of Input Payload" doc:id="02ac97f5-2a3a-4887-91b0-174c29d97969" >
+			<ee:message >
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="inputPayload" ><![CDATA[%dw 2.0
+output application/java
+---
+message]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<flow-ref doc:name="calling The UnblockAccountCheck Flow" doc:id="ee709375-e2ad-4fb9-b363-91f4cb927074" name="unblockAccountCheck"/>
+		<choice doc:name="Choice" doc:id="b48fb476-8b09-46eb-a5c5-0356983ebd01" >
+			<when expression='#[vars.dbResponse.payload != []]'>
+				<flow-ref doc:name="calling The UnblockAccountCheck Flow" doc:id="fd73ace2-0e2a-4baa-822c-402d4f6461f5" name="unblockAccountCheck"/>
+				<choice doc:name="Choice" doc:id="b7c82e26-0ee8-4ae8-8413-6077a84027c3" >
+					<when expression="#[vars.dbResponse.payload.accountStatus == ['active']]">
+						<ee:transform doc:name="response To The User" doc:id="58e34084-c226-4f52-8f79-e812abe805ae" >
+							<ee:message >
+								<ee:set-payload ><![CDATA[%dw 2.0
+output text/plain
+---
+"Account" ++ " " ++ vars.inputPayload.payload.accountNum ++ " " ++ "is already Active."]]></ee:set-payload>
+							</ee:message>
+						</ee:transform>
+					</when>
+					<otherwise >
+						<try doc:name="Try" doc:id="ad8a3350-a0cb-42f4-925f-0c30dc024aef" >
+							<until-successful maxRetries="5" doc:name="Until Successful" doc:id="7a6aec72-b71b-47b6-93b1-68c7206819de" millisBetweenRetries="10000">
+							<db:update doc:name="updating The Status In Db" doc:id="179e85e8-1b2e-465b-b2a4-278f41c443a1" config-ref="AWS_RDB_SQL_Database_Config">
+							<db:sql><![CDATA[update Bank_Transactions
+set accountStatus='active',
+	wrongPin=0
+where custAccNum=:accountNum and bankName=:bank;]]></db:sql>
+							<db:input-parameters><![CDATA[#[{
+	accountNum: vars.inputPayload.payload.accountNum,
+    bank: vars.inputPayload.payload.bank
+}]]]></db:input-parameters>
+						</db:update>
+						</until-successful>
+							<error-handler >
+								<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="de5f85c4-177b-4379-b45a-860bb45cc692" type="MULE:RETRY_EXHAUSTED">
+									<ee:transform doc:name="Transform Message" doc:id="83b768ca-aa65-4503-b820-dfac6a5da0e8" >
+										<ee:message >
+											<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": "connecting to database failed"
+}]]></ee:set-payload>
+										</ee:message>
+									</ee:transform>
+								</on-error-propagate>
+							</error-handler>
+						</try>
+						<async doc:name="Async" doc:id="24529c93-ce7b-4c0f-8d78-556de9a70a6f">
+							<try doc:name="Try" doc:id="5126548a-d2e8-447c-9eb2-502e6c9075de" >
+								<until-successful maxRetries="5" doc:name="Until Successful" doc:id="18426b5f-d95f-466c-b6e1-335ef89e99ba" millisBetweenRetries="10000">
+								<email:send doc:name="sending Mail To The User" doc:id="dc9c2a4c-0bdb-42e1-b714-b8c9988ea21d" config-ref="Email_SMTP" fromAddress="kiran.sai7049@gmail.com" subject="Account Unblocked !!!!!!!!">
+								<email:to-addresses>
+									<email:to-address value='#[((vars.dbResponse.payload.mailId) joinBy "")]' />
+								</email:to-addresses>
+								<email:body contentType="text/plain">
+									<email:content><![CDATA[This is to inform you that Your Account has been unblocked.]]></email:content>
+								</email:body>
+							</email:send>
+							</until-successful>
+								<error-handler >
+									<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="9ea12937-c4d6-4bef-8832-6b0365ecceb7" type="MULE:RETRY_EXHAUSTED">
+										<ee:transform doc:name="Transform Message" doc:id="7377df0f-ae18-4864-a8a8-a6388fc69aa4" >
+											<ee:message >
+												<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": "connecting to mail failed"
+}]]></ee:set-payload>
+											</ee:message>
+										</ee:transform>
+									</on-error-propagate>
+								</error-handler>
+							</try>
+						</async>
+						<ee:transform doc:name="response To The User" doc:id="14d51e59-ce63-40c0-8b10-2d09b507ed7a" >
+							<ee:message >
+								<ee:set-payload ><![CDATA[%dw 2.0
+output text/plain
+---
+"Account" ++ " " ++ vars.inputPayload.payload.accountNum ++ " " ++ "is Unblocked."]]></ee:set-payload>
+							</ee:message>
+						</ee:transform>
+					</otherwise>
+				</choice>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="response To The User" doc:id="c82a184b-44da-4b05-9361-7896bc59352e" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output text/plain
+---
+"Account" ++ " " ++  vars.inputPayload.payload.accountNum ++ " " ++ "does not exist. Enter valid Details."]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+	<sub-flow name="unblockAccountCheck" doc:id="52515f47-0396-4399-9f8d-a2f373e1048f" >
+		<until-successful maxRetries="5" doc:name="Until Successful" doc:id="9369676e-94d0-49c4-8e13-881ff5ac8cb3" millisBetweenRetries="10000">
+			<db:select doc:name="checking The Account Status In Db" doc:id="2d63ffdb-a40b-4f59-8282-bd824b7f69c1" config-ref="AWS_RDB_SQL_Database_Config">
+			<db:sql><![CDATA[select *from Bank_Transactions where custAccNum=:accountNum and bankName=:bank;]]></db:sql>
+			<db:input-parameters><![CDATA[#[{
+	accountNum: vars.inputPayload.payload.accountNum,
+    bank: vars.inputPayload.payload.bank
+}]]]></db:input-parameters>
+		</db:select>
+		</until-successful>
+		<ee:transform doc:name="Transform Message" doc:id="3a60d616-bd0c-482e-ab7e-5a627056b248">
+			<ee:message>
+			</ee:message>
+			<ee:variables>
+				<ee:set-variable variableName="dbResponse" ><![CDATA[%dw 2.0
+output application/java
+---
+message]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+	</sub-flow>
+</mule>

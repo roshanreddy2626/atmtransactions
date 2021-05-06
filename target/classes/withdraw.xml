@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:email="http://www.mulesoft.org/schema/mule/email" xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/email http://www.mulesoft.org/schema/mule/email/current/mule-email.xsd">
+	<flow name="withdrawFlow" doc:id="039ee642-c787-4f17-8de2-8649ffc9ccc0" >
+		<set-variable value="#[message]" doc:name="inputPayload" doc:id="ee88791f-4ae2-40bc-9a4f-36edf564f920" variableName="inputPayload"/>
+		<flow-ref doc:name="calling Account Exists Flow" doc:id="3694695e-e8c9-48ec-8312-4391a556c550" name="accountExistsCheckFlow"/>
+		<choice doc:name="Choice" doc:id="6a126853-d624-4cc9-84de-d61916ae7c4e" >
+			<when expression='#[vars."dbResponse-accountCheck".payload != []]'>
+				<flow-ref doc:name="calling Account Exists Flow" doc:id="5b4667cf-3b79-42ee-94da-3b4c555d990d" name="accountExistsCheckFlow"/>
+				<choice doc:name="Choice" doc:id="0272e495-165d-44b5-9d49-ef40cca02c20" >
+					<when expression="#[vars.&quot;dbResponse-accountCheck&quot;.payload.accountStatus == ['active']]">
+						<flow-ref doc:name="calling Account Exists Flow" doc:id="b427e99b-3735-4450-a1cd-2142efe494ce" name="accountExistsCheckFlow"/>
+						<choice doc:name="Choice" doc:id="0a0601a5-203c-4400-b84f-948370f42a48" >
+							<when expression='#[vars."dbResponse-accountCheck".payload.atmPin == [vars.inputPayload.payload.atmPin]]'>
+								<flow-ref doc:name="calling Account Exists Flow" doc:id="0ba8e7f8-f269-42ed-b894-96c045454912" name="accountExistsCheckFlow"/>
+								<choice doc:name="Choice" doc:id="56af03ce-6c15-4d03-ab4f-d8b367a914a6" >
+									<when expression='#[((vars."dbResponse-accountCheck".payload.totalBalance) joinBy "" ) &gt; vars.inputPayload.payload.amountToBeWithdraw]'>
+										<until-successful maxRetries="5" doc:name="Until Successful" doc:id="1a177294-93fb-4bad-a9a6-f936da2af85d" millisBetweenRetries="10000">
+											<db:update doc:name="updating The Status In Db" doc:id="845e0770-4a55-4b04-aa6a-c7ae374b5c31" config-ref="AWS_RDB_SQL_Database_Config">
+											<db:sql><![CDATA[update Bank_Transactions
+set totalBalance = (select totalBalance - :amountToBeWithdraw)
+where custAccNum=:accountNum and bankName=:bank;]]></db:sql>
+											<db:input-parameters><![CDATA[#[{
+	accountNum: vars.inputPayload.payload.accountNum,
+    bank: vars.inputPayload.attributes.queryParams.bank,
+    amountToBeWithdraw: vars.inputPayload.payload.amountToBeWithdraw
+}]]]></db:input-parameters>
+										</db:update>
+										</until-successful>
+										<until-successful maxRetries="5" doc:name="Until Successful" doc:id="f92a5b46-6822-477b-a358-8da8876c08e9" millisBetweenRetries="10000">
+											<db:select doc:name="selecting From Db" doc:id="91b42bc1-67d5-4d63-b894-3acef9baac4e" config-ref="AWS_RDB_SQL_Database_Config">
+											<db:sql><![CDATA[select * from Bank_Transactions where custAccNum=:accountNum and bankName=:bank;]]></db:sql>
+											<db:input-parameters><![CDATA[#[{
+	accountNum: vars.inputPayload.payload.accountNum,
+    bank: vars.inputPayload.attributes.queryParams.bank
+}]]]></db:input-parameters>
+										</db:select>
+										</until-successful>
+										<async doc:name="Async" doc:id="1bb01009-7d43-4d21-b126-d121e76e693d">
+											<until-successful maxRetries="5" doc:name="Until Successful" doc:id="89bc25e4-38ef-4e0c-8267-d0bae42c44b0" millisBetweenRetries="10000">
+												<email:send doc:name="sending The Mail To The User" doc:id="03f150f7-5047-4df6-b29f-fc1e79175dd0" config-ref="Email_SMTP" fromAddress="kiran.sai7049@gmail.com">
+												<email:to-addresses>
+													<email:to-address value='#[vars."dbResponse-accountCheck".payload.mailId]' />
+												</email:to-addresses>
+												<email:body>
+													<email:content><![CDATA[#["This is to inform you that Your Account has been debited with" ++ " " ++  
+(vars.inputPayload.payload.amountToBeWithdraw) ++ " " ++ "amount and your Total Balance is" ++ " " ++ ((payload.totalBalance) joinBy "") ++ "/-"]]]></email:content>
+												</email:body>
+											</email:send>
+											</until-successful>
+										</async>
+										<ee:transform doc:name="response To The User" doc:id="539352ac-3399-4933-a020-f919be4e835a">
+											<ee:message>
+												<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+"status": "Amount" ++ ' ' ++  (vars.inputPayload.payload.amountToBeWithdraw) ++ ' ' ++ "is debited. Your total balance is" ++ ' ' ++ ((payload.totalBalance) joinBy "") ++ "/-"
+}]]></ee:set-payload>
+											</ee:message>
+										</ee:transform>
+									</when>
+									<otherwise>
+										<ee:transform doc:name="response To The User" doc:id="e0d49977-bd1a-48e4-9678-d6b68b12e2f4">
+											<ee:message>
+												<ee:set-payload><![CDATA[%dw 2.0
+output text/plain
+---
+"Insufficient Funds"]]></ee:set-payload>
+											</ee:message>
+										</ee:transform>
+									</otherwise>
+								</choice>
+							</when>
+							<otherwise >
+								<flow-ref doc:name="calling Account Exists Flow" doc:id="76579720-e0c7-489b-a4ec-1748818fe5df" name="accountExistsCheckFlow"/>
+								<choice doc:name="Choice" doc:id="e2fc7330-f508-4817-bd5c-eff9ae5684d3" >
+									<when expression='#[((vars."dbResponse-accountCheck".payload.wrongPin) joinBy "" &lt; 3)]'>
+										<flow-ref doc:name="calling Wrong Pin&lt;3 Flow" doc:id="97961c57-b281-48d2-81e9-7a5c2756f38c" name="wrong-pin-value&lt;3Flow"/>
+									</when>
+									<otherwise>
+										<flow-ref doc:name="calling Wrong Pin=3 Flow" doc:id="c15f8498-2aa3-48a3-9ee6-5a494d184c28" name="wrong-pin-value==3Flow"/>
+									</otherwise>
+								</choice>
+							</otherwise>
+						</choice>
+					</when>
+					<otherwise >
+						<ee:transform doc:name="Transform Message" doc:id="a15813de-87de-4059-9366-2a13c8a96874" >
+							<ee:message >
+								<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status": "Account" ++ " " ++ vars.inputPayload.payload.accountNum ++ " " ++ "temporarily blocked. Please visit nearest branch"
+}]]></ee:set-payload>
+							</ee:message>
+						</ee:transform>
+					</otherwise>
+				</choice>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="Transform Message" doc:id="7a2bf218-7e53-4855-a0ae-5af9d1d80ba3" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"status" : "Account" ++ " " ++ vars.inputPayload.payload.accountNum ++ " " ++ "does not exists. Enter valid details"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+</mule>

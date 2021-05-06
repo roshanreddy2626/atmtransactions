@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:api-gateway="http://www.mulesoft.org/schema/mule/api-gateway" xmlns:secure-properties="http://www.mulesoft.org/schema/mule/secure-properties" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd  http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/secure-properties http://www.mulesoft.org/schema/mule/secure-properties/current/mule-secure-properties.xsd
+http://www.mulesoft.org/schema/mule/api-gateway http://www.mulesoft.org/schema/mule/api-gateway/current/mule-api-gateway.xsd">
+    <http:listener-config name="atm-transaction-saikiran-httpListenerConfig">
+        <http:listener-connection host="${secure::http.host}" port="${secure::http.port}" />
+    </http:listener-config>
+    <apikit:config name="atm-transaction-saikiran-config" api="resource::f076267c-2b29-4c57-beec-3f6cf7e929b2:atm-transaction-saikiran:1.0.5:raml:zip:atm-transaction-saikiran.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" />
+    <configuration-properties doc:name="Configuration properties" doc:id="331c59ef-dfb4-4ff3-b6dd-1bcb28272b29" file="properties/dev.properties" />
+	<secure-properties:config name="Secure_Properties_Config" doc:name="Secure Properties Config" doc:id="751059e4-1279-4e17-8fe3-d18c0c48f20f" file="properties/dev.properties" key="saikiran" >
+		<secure-properties:encrypt algorithm="Blowfish" />
+	</secure-properties:config>
+	<api-gateway:autodiscovery apiId="16744297" ignoreBasePath="true" doc:name="API Autodiscovery" doc:id="eb850656-4ee1-40b1-87ab-2fc95657a239" flowRef="atm-transaction-saikiran-main" />
+	<flow name="atm-transaction-saikiran-main">
+        <http:listener doc:name="Listener" doc:id="69362ea6-5a86-4f3c-b332-6d4544c1596d" config-ref="atm-transaction-saikiran-httpListenerConfig" path="${secure::http.path}" allowedMethods="GET, POST, PUT">
+			<http:error-response statusCode="#[500]">
+				<http:body ><![CDATA[#[output text/plain --- payload]]]></http:body>
+			</http:error-response>
+		</http:listener>
+		<apikit:router config-ref="atm-transaction-saikiran-config" />
+    </flow>
+	<flow name="put:\unblock:application\json:atm-transaction-saikiran-config">
+        <flow-ref doc:name="calling Unblock Flow" doc:id="16ef706e-cf23-47b8-9229-f5d0a284c6ad" name="put:\unblock:application\json:atm-transaction-saikiran-config"/>
+    </flow>
+    <flow name="post:\checkBalance:application\json:atm-transaction-saikiran-config">
+        <flow-ref doc:name="calling Check Balance Flow" doc:id="95672293-6e00-4ebe-a85f-fce8e76df38e" name="checkBalanceFlow" />
+    </flow>
+    <flow name="post:\createAccount:application\json:atm-transaction-saikiran-config">
+        <flow-ref doc:name="calling Create Account Flow" doc:id="6a0a7dad-e0b5-4ef1-8c02-6a0991f380d6" name="createAccountFlow" />
+    </flow>
+    <flow name="post:\withDraw:application\json:atm-transaction-saikiran-config">
+        <flow-ref doc:name="calling Withdraw Flow" doc:id="50a73665-ef9b-44e2-8bac-3ad8ed80d299" name="withdrawFlow" />
+    </flow>
+</mule>

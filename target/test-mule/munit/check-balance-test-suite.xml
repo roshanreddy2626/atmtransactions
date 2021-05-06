@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:munit="http://www.mulesoft.org/schema/mule/munit" xmlns:munit-tools="http://www.mulesoft.org/schema/mule/munit-tools"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xsi:schemaLocation="
+		http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+		http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
+		http://www.mulesoft.org/schema/mule/munit-tools  http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd">
+	<munit:config name="check-balance-test-suite.xml" />
+	<munit:test name="check-balance-success-response-test" doc:id="b83902e4-f5e0-48a7-8350-04e4a2ccb9df" description="Test">
+		<munit:execution >
+			<munit:set-event doc:name="Set Event" doc:id="aa19edce-abf5-4d06-ad2e-77cb9e3693ef" >
+				<munit:payload value="#[readUrl('classpath://check_balance_test_cases/input_payload.dwl')]" />
+				<munit:attributes value="#[readUrl('classpath://check_balance_test_cases/input_attributes.dwl')]" />
+			</munit:set-event>
+			<flow-ref doc:name="Flow-ref to checkBalanceFlow" doc:id="a8955f69-a6e7-463a-843e-52c52daeb5a5" name="checkBalanceFlow"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:verify-call doc:name="Verify call" doc:id="56aa3f8e-c75c-4364-bc28-589e92d0a68f" processor="flow-ref" atLeast="#[1]">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="13640c80-fcb5-46f9-b666-2a9d4b6f1745" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+			<munit-tools:verify-call doc:name="Verify call" doc:id="349330ad-0004-433f-8575-a682f00455b8" processor="flow-ref" atLeast="#[1]">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="a4b52b77-8fdc-478f-a049-e89ad9dad125" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+			<munit-tools:assert doc:name="Assert expression" doc:id="f35db332-b989-41da-bf21-aaad40b1dfc9" >
+				<munit-tools:that ><![CDATA[#[import check_balance_test_cases::check_balance_success_response
+---
+check_balance_success_response::main({payload: payload, attributes: attributes, vars: vars})]]]></munit-tools:that>
+			</munit-tools:assert>
+		</munit:validation>
+	</munit:test>
+	<munit:test name="check-balance-wrongpin&lt;3-test" doc:id="35f0d65d-6763-447a-a223-daffb99244d5" >
+		<munit:execution >
+			<munit:set-event doc:name="Set Event" doc:id="a055db98-46bf-4b79-8c8f-67852ed6d96e">
+				<munit:payload value="#[readUrl('classpath://check_balance_test_cases/input_payload_wrongpin&lt;3.dwl')]" />
+				<munit:attributes value="#[readUrl('classpath://check_balance_test_cases/input_attributes.dwl')]" />
+			</munit:set-event>
+			<flow-ref doc:name="Flow-ref to checkBalanceFlow" doc:id="2a4a3a8e-eca2-44b6-aaa0-e28e03e3db4b" name="checkBalanceFlow" />
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:verify-call doc:name="Verify call" doc:id="a11cfe90-ce8e-4667-9ec8-a227952dd02e" processor="flow-ref" atLeast="#[1]">
+				<munit-tools:with-attributes>
+					<munit-tools:with-attribute whereValue="13640c80-fcb5-46f9-b666-2a9d4b6f1745" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+			<munit-tools:verify-call doc:name="Verify call" doc:id="2fc650d2-e436-44b4-91e8-b5fa478b23e8" processor="flow-ref" atLeast="#[1]">
+				<munit-tools:with-attributes>
+					<munit-tools:with-attribute whereValue="a4b52b77-8fdc-478f-a049-e89ad9dad125" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+			<munit-tools:verify-call doc:name="Verify call" doc:id="be10171b-2c54-447b-abbf-99fef116d736" processor="flow-ref">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="dd66c887-1e1a-4ac1-8066-3ad6b788e1a4" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+			<munit-tools:verify-call doc:name="Verify call" doc:id="7a413a96-85af-4559-95af-e75f81b829f2" processor="flow-ref" atLeast="#[1]">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="cfd62ce1-b9d6-4ba8-8b7e-9ce792d665c0" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+			<munit-tools:verify-call doc:name="Verify call" doc:id="c74436c3-d1f9-4182-83a2-aab8bde4011b" processor="flow-ref" atLeast="#[1]">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="30f07acc-07ea-4488-9d12-a22b23963730" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+		</munit:validation>
+	</munit:test>
+	<munit:test name="check-balance-wrongpin=3-test" doc:id="46db887c-4346-4710-a806-3c8f514860c4" >
+		<munit:execution >
+			<munit:set-event doc:name="Set Event" doc:id="6dbdacb3-97b0-48ce-a15b-6649165f91cb" >
+				<munit:payload value="#[readUrl('classpath://check_balance_test_cases/input_payload_wrongpin=3.dwl')]" />
+				<munit:attributes value="#[readUrl('classpath://check_balance_test_cases/input_attributes.dwl')]" />
+			</munit:set-event>
+			<flow-ref doc:name="Flow-ref to checkBalanceFlow" doc:id="e2c1bcd3-84dc-4634-9ba3-1c5efe042012" name="checkBalanceFlow" />
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:verify-call doc:name="Verify call" doc:id="55e763b8-a557-4312-a46b-d52917103fad" processor="flow-ref" atMost="1">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="13640c80-fcb5-46f9-b666-2a9d4b6f1745" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+			<munit-tools:verify-call doc:name="Verify call" doc:id="7956c351-a94e-47ab-83ee-c7457aae60fb" processor="flow-ref" atLeast="#[1]" >
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="a4b52b77-8fdc-478f-a049-e89ad9dad125" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+			<munit-tools:verify-call doc:name="Verify call" doc:id="ee52bfa9-77ce-4c69-8f0f-ac2fbe612001" processor="flow-ref" atLeast="#[1]">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="dd66c887-1e1a-4ac1-8066-3ad6b788e1a4" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+			<munit-tools:verify-call doc:name="Verify call" doc:id="a4dfe66a-86df-4c23-bec9-b67860f3db4f" processor="flow-ref" atLeast="#[1]" >
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="cfd62ce1-b9d6-4ba8-8b7e-9ce792d665c0" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+			<munit-tools:verify-call doc:name="Verify call" doc:id="2b720266-9597-4f44-be78-9f97e5362b35" processor="flow-ref" atLeast="#[1]">
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="5aeb4c58-1c7c-4992-87d9-41301231859f" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+		</munit:validation>
+	</munit:test>
+	<munit:test name="check-balance-account-doesnotexists-test" doc:id="305e7a7d-5fdc-4dee-af7b-dfe0614951b9" >
+		<munit:execution >
+			<munit:set-event doc:name="Set Event" doc:id="3cde4f45-3483-47f1-b885-0e4d77723cd1" >
+				<munit:payload value="#[readUrl('classpath://check_balance_test_cases/input_payload_account_doesnotexists.dwl')]" />
+				<munit:attributes value="#[readUrl('classpath://check_balance_test_cases/input_attributes.dwl')]" />
+			</munit:set-event>
+			<flow-ref doc:name="Flow-ref to checkBalanceFlow" doc:id="efbf9f6d-cd5d-4ef8-ade6-e79fa25f4872" name="checkBalanceFlow" />
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:verify-call doc:name="Verify call" doc:id="a4ed2485-2200-4b4c-9d8d-e35d380b79b4" processor="flow-ref" atLeast="#[1]" >
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="13640c80-fcb5-46f9-b666-2a9d4b6f1745" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+			<munit-tools:assert doc:name="Assert expression" doc:id="36db7fa0-ed9e-47f5-b260-d2a53620c5bd" >
+				<munit-tools:that ><![CDATA[#[import check_balance_test_cases::check_balance_account_doesnotexists_response
+---
+check_balance_account_doesnotexists_response::main({payload: payload,attributes: attributes,vars: vars})]]]></munit-tools:that>
+			</munit-tools:assert>
+		</munit:validation>
+	</munit:test>
+	<munit:test name="check-balance-account-blocked-test" doc:id="303617d8-7103-401a-a54c-4b5ac99dd7fd" >
+		<munit:execution >
+			<munit:set-event doc:name="Set Event" doc:id="1d0798b2-21de-4635-b99b-35528392f41c" >
+				<munit:payload value="#[readUrl('classpath://check_balance_test_cases/input_payload_account_blocked.dwl')]" />
+				<munit:attributes value="#[readUrl('classpath://check_balance_test_cases/input_attributes.dwl')]" />
+			</munit:set-event>
+			<flow-ref doc:name="Flow-ref to checkBalanceFlow" doc:id="137b6d64-2e8c-4624-b0bf-9bf2f94fa1a5" name="checkBalanceFlow" />
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:verify-call doc:name="Verify call" doc:id="7ba5503d-db00-4afe-bd9c-8b2416601485" processor="flow-ref" atLeast="#[1]" >
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="13640c80-fcb5-46f9-b666-2a9d4b6f1745" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+			<munit-tools:verify-call doc:name="Verify call" doc:id="7f78c73e-e2bc-4466-8eea-94db65384c9c" processor="flow-ref" atLeast="#[1]" >
+				<munit-tools:with-attributes >
+					<munit-tools:with-attribute whereValue="a4b52b77-8fdc-478f-a049-e89ad9dad125" attributeName="doc:id" />
+				</munit-tools:with-attributes>
+			</munit-tools:verify-call>
+			<munit-tools:assert doc:name="Assert expression" doc:id="cef93ea2-a749-47e6-8fa6-1007e9da94a6" >
+				<munit-tools:that ><![CDATA[#[import check_balance_test_cases::check_balance_account_blocked_response
+---
+check_balance_account_blocked_response::main({payload: payload,attributes: attributes,vars: vars})]]]></munit-tools:that>
+			</munit-tools:assert>
+		</munit:validation>
+	</munit:test>
+
+</mule>
